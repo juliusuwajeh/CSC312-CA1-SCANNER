@@ -1,0 +1,14 @@
+# CA1 Reflection — The Scanner
+
+## 1. Fractional numbers and the `.` character
+
+The scanner decides that a `.` begins a fractional part only when it is followed by an ASCII digit. This decision is made in `number()` at `src/scanner.rs:148`, where the scanner checks `self.peek() == '.' && self.peek_next().is_ascii_digit()`. If the condition is true, the scanner consumes the dot at `src/scanner.rs:149` and then consumes the fractional digits at `src/scanner.rs:151-153`. Therefore, the input `5.` is scanned as the number `5`, followed by a standalone `.`. The dot is then handled by `scan_token()` at `src/scanner.rs:54-56`, where it produces a scanning error because there is no standalone dot token. This follows section 1.4 because a fractional part requires at least one digit after the decimal point. Therefore, `.5` and `5.` are not valid number literals.
+
+## 2. Line counting and EOF
+
+The scanner changes the line counter whenever it encounters a newline in `scan_token()`, at `src/scanner.rs:113-115`. It also increments the counter for newlines occurring inside a string at `src/scanner.rs:127-129`. These are the places where the scanner changes the line number. For a file ending with two blank lines, the scanner processes both newline characters and increments the counter for each one. The EOF token then carries the line number stored by the scanner when scanning has finished, as implemented in `run()` at `src/scanner.rs:34-42`. Thus, EOF carries the line number reached after processing those newlines. This is required by section 6.1 because EOF represents the scanner's final position after the complete source has been consumed, rather than simply using the line number of the last token that happened to be produced.
+
+## 3. Failed test and debugging
+
+The test I failed during implementation was `invalid/unterminated_string.kobo`. The problem was that an unterminated string could span multiple lines, so reporting the error using the scanner's current line would report the line where the scanner reached the end instead of the line where the string began. I fixed this by saving the opening line at `src/scanner.rs:124` and using that saved value when reporting the error at `src/scanner.rs:134-136`. I had misunderstood which line the specification required for an unterminated string error: it requires the line on which the string opened. My current repository history does not contain two separate commits for the incorrect and corrected versions. The repository was initialized after the scanner work had already been completed, so `git log --oneline` contains only `e8e9ca5 Initial starter project`. I have therefore not invented a second commit hash or claimed a historical commit that does not exist. The current implementation and the 14/14 test result reflect the corrected behavior.
+
